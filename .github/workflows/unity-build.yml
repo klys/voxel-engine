@@ -24,7 +24,7 @@ jobs:
         fetch-depth: 0  # Required to access full git history
 
     - name: Set up Unity
-      uses: game-ci/unity-setup@v4
+      uses: game-ci/unity-setup@v3
       with:
         unityVersion: 6000.1.7f1  # ✅ Change to your Unity version
         githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -65,7 +65,7 @@ jobs:
         git push origin $newTag
 
     - name: Build project
-      uses: game-ci/unity-builder@v4
+      uses: game-ci/unity-builder@v3
       with:
         targetPlatform: ${{ matrix.targetPlatform }}
 
