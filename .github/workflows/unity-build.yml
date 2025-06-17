@@ -34,6 +34,41 @@ jobs:
         targetPlatform: ${{ matrix.targetPlatform }}
         unityVersion: auto  # optional; builder can detect version
 
+    - name: Get latest tag & create new tag
+      id: versioning
+      run: |
+        git fetch --tags
+
+        latestTag=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+        echo "Latest tag: $latestTag"
+
+        if [ -z "$latestTag" ]; then
+          newTag="v0.1.0"
+        else
+          version=$(echo $latestTag | sed 's/v//')
+          IFS='.' read -r major minor patch <<< "$version"
+          patch=$((patch + 1))
+          newTag="v$major.$minor.$patch"
+        fi
+
+        # Get commit messages since last tag
+        if [ -z "$latestTag" ]; then
+          changelog=$(git log --pretty=format:"- %s" origin/main)
+        else
+          changelog=$(git log $latestTag..HEAD --pretty=format:"- %s")
+        fi
+
+        echo "tag=$newTag" >> $GITHUB_OUTPUT
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$changelog" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        # Create and push new tag
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git tag $newTag
+        git push origin $newTag
+
     - name: Compress Build
       run: |
         mkdir -p release
