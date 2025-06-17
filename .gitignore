@@ -1,0 +1,40 @@
+# --- Unity ---
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Bb]uild/
+/[Bb]uilds/
+/[Bb]uilt[Pp]roducts/
+/[Bb]ackup/
+*.csproj.user
+*. സ്വ
+*.sln.DotSettings
+UserSettings/
+*.suo
+*.userprefs
+*.csproj.user
+*.unity.meta
+*.csproj.user
+*.userprefs
+*.csproj.user
+
+# --- Visual Studio ---
+*.csproj
+*.sln
+*.user
+*.suo
+.vs/
+
+# --- Rider ---
+.idea/
+
+# --- VS Code ---
+.vscode/
+
+# --- OS generated files ---
+.DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
