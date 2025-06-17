@@ -53,7 +53,7 @@ jobs:
 
         # Get commit messages since last tag
         if [ -z "$latestTag" ]; then
-          changelog=$(git log --pretty=format:"- %s" origin/main)
+          changelog=$(git log --pretty=format:"- %s" origin/master)
         else
           changelog=$(git log $latestTag..HEAD --pretty=format:"- %s")
         fi
