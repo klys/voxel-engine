@@ -44,7 +44,10 @@ public class Chunk : MonoBehaviour
                     // Use world coordinates for noise sampling
                     Vector3 worldPos = transform.position + new Vector3(x, y, z);
                     Voxel.VoxelType type = DetermineVoxelType(worldPos.x, worldPos.y, worldPos.z);
-                    voxels[x, y, z] = new Voxel(worldPos, type, type != Voxel.VoxelType.Air);
+                    if (type != Voxel.VoxelType.Air) {
+                        Voxel.VoxelType type2 = CaveDetermineVoxelType(worldPos.x, worldPos.y, worldPos.z);
+                        voxels[x, y, z] = new Voxel(worldPos, type2, type2 != Voxel.VoxelType.Air);
+                    } else voxels[x, y, z] = new Voxel(worldPos, type, type != Voxel.VoxelType.Air);
                 }
             }
         }
@@ -341,4 +344,48 @@ public class Chunk : MonoBehaviour
         else
             return Voxel.VoxelType.Air; // Air voxel
     }
+
+
+    private Voxel.VoxelType CaveDetermineVoxelType(float x, float y, float z)
+    {
+        float noiseValue = Noise.CalcPixel3D((int)x, (int)y, (int)z, 0.1f);
+        
+        float threshold = 125f; // The threshold for determining solid/air
+
+        //Debug.Log(noiseValue);
+        
+        if (noiseValue > threshold)
+            return Voxel.VoxelType.Grass; // Solid voxel
+        else
+            return Voxel.VoxelType.Air; // Air voxel
+    }
+
+    // for block breaking
+    public void SetVoxel(int x, int y, int z, Voxel.VoxelType type)
+    {
+        if (x >= 0 && x < chunkSize && y >= 0 && y < chunkSize && z >= 0 && z < chunkSize)
+        {
+            voxels[x, y, z].type = type;
+            voxels[x, y, z].isActive = type != Voxel.VoxelType.Air;
+        }
+    }
+
+    public void RegenerateMesh()
+    {
+        vertices.Clear();
+        triangles.Clear();
+        uvs.Clear();
+        GenerateMesh();
+    }
+
+    public Voxel GetVoxel(int x, int y, int z)
+    {
+        //if (x >= 0 && x < chunkSize && y >= 0 && y < chunkSize && z >= 0 && z < chunkSize)
+        //{
+            return voxels[x, y, z];
+        //}
+        
+    }
+
+
 }
