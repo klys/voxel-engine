@@ -23,51 +23,14 @@ jobs:
       with:
         fetch-depth: 0  # Required to access full git history
 
-    - name: Set up Unity
-      uses: game-ci/unity-setup@v3
-      with:
-        unityVersion: 6000.1.7f1-3.1.0  # ✅ Change to your Unity version
-        githubToken: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Get latest tag & create new tag
-      id: versioning
-      run: |
-        git fetch --tags
-
-        latestTag=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
-        echo "Latest tag: $latestTag"
-
-        if [ -z "$latestTag" ]; then
-          newTag="v0.1.0"
-        else
-          version=$(echo $latestTag | sed 's/v//')
-          IFS='.' read -r major minor patch <<< "$version"
-          patch=$((patch + 1))
-          newTag="v$major.$minor.$patch"
-        fi
-
-        # Get commit messages since last tag
-        if [ -z "$latestTag" ]; then
-          changelog=$(git log --pretty=format:"- %s" origin/main)
-        else
-          changelog=$(git log $latestTag..HEAD --pretty=format:"- %s")
-        fi
-
-        echo "tag=$newTag" >> $GITHUB_OUTPUT
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        echo "$changelog" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-
-        # Create and push new tag
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
-        git tag $newTag
-        git push origin $newTag
-
     - name: Build project
       uses: game-ci/unity-builder@v4
+      env:
+        UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
       with:
         targetPlatform: ${{ matrix.targetPlatform }}
+        unityVersion: auto  # optional; builder can detect version
 
     - name: Compress Build
       run: |
