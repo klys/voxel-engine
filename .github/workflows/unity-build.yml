@@ -3,15 +3,15 @@ name: Unity Auto-Build and Release with Changelog
 on:
   push:
     branches:
-      - master  # or master
+      - master # or main
 
 jobs:
-  build:
-    name: Auto Build and Release
+  build_and_package: # Renamed job
+    name: Build and Package Artifacts
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-    environment: unity
+      contents: write # Still needed for game-ci/unity-builder potentially, though less critical for outputting to build folder
+    environment: unity # Keep environment for secrets
 
     strategy:
       matrix:
@@ -24,7 +24,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Required to access full git history
+        fetch-depth: 0
 
     - name: Build project
       uses: game-ci/unity-builder@v4
@@ -34,7 +34,38 @@ jobs:
         UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
       with:
         targetPlatform: ${{ matrix.targetPlatform }}
-        unityVersion: auto  # optional; builder can detect version
+        unityVersion: auto
+
+    - name: Compress Build for ${{ matrix.targetPlatform }}
+      run: |
+        # Create a temp directory for the zip to avoid conflicts and ensure clean upload
+        mkdir -p temp_release
+        zip -r temp_release/${{ matrix.targetPlatform }}.zip build/${{ matrix.targetPlatform }}
+
+    - name: Upload Build Artifact for ${{ matrix.targetPlatform }}
+      uses: actions/upload-artifact@v4 # Use actions/upload-artifact
+      with:
+        name: ${{ matrix.targetPlatform }}-build # Unique name for each artifact
+        path: temp_release/${{ matrix.targetPlatform }}.zip
+
+  create_release: # New job for creating the single release
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build_and_package # This job depends on 'build_and_package' finishing successfully
+    permissions:
+      contents: write # Essential for creating tags and releases
+      pull-requests: write # Recommended if the changelog logic is intricate
+
+    steps:
+    - name: Checkout repository (for tagging and changelog)
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Required to access full git history for changelog
+
+    - name: Download all build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: downloaded_artifacts # All artifacts will be downloaded into this directory
 
     - name: Get latest tag & create new tag
       id: versioning
@@ -65,16 +96,25 @@ jobs:
         echo "$changelog" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
 
-        # Create and push new tag
+        # Create and push new tag - only do this once
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
         git tag $newTag
         git push origin $newTag
 
-    - name: Compress Build
+    - name: Prepare Files for Release
       run: |
-        mkdir -p release
-        zip -r release/${{ matrix.targetPlatform }}.zip build/${{ matrix.targetPlatform }}
+        # softprops/action-gh-release expects a list of file paths
+        # We need to list all downloaded zips.
+        # The downloaded artifacts will be in subdirectories matching their artifact name
+        # e.g., downloaded_artifacts/StandaloneWindows64-build/StandaloneWindows64.zip
+        # downloaded_artifacts/StandaloneOSX-build/StandaloneOSX.zip
+
+        # Create a flat list of paths for softprops/action-gh-release
+        find downloaded_artifacts -type f -name "*.zip" | tr '\n' ',' > release_files.txt
+        RELEASE_FILES=$(cat release_files.txt)
+        echo "release_files=$RELEASE_FILES" >> $GITHUB_OUTPUT
+      id: prepare_files
 
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
@@ -82,6 +122,6 @@ jobs:
         tag_name: ${{ steps.versioning.outputs.tag }}
         name: Release ${{ steps.versioning.outputs.tag }}
         body: ${{ steps.versioning.outputs.changelog }}
-        files: release/${{ matrix.targetPlatform }}.zip
+        files: ${{ steps.prepare_files.outputs.release_files }} # Pass the comma-separated list of files
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
