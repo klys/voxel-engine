@@ -18,6 +18,9 @@ public class NetClient : MonoBehaviour
 
     public int playerId = -1;
 
+    private readonly ConcurrentQueue<Action> mainThreadActions = new();
+
+
     public class PlayerData
     {
         public GameObject gameObject; // Reference to Unity object
@@ -61,10 +64,12 @@ public class NetClient : MonoBehaviour
 
         // game packets
 
-        client.On("player-identification", (response) =>
+        client.On("player-identification", async (response) =>
         {
             playerId = response.GetValue<int>();
             Debug.Log($"Player identified as {playerId}");
+
+            await client.EmitAsync("player-start", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
         });
 
         client.On("player-start", (response) =>
@@ -84,13 +89,18 @@ public class NetClient : MonoBehaviour
                 angle = reader.ReadSingle();
             }
 
-            Debug.Log($"Starting Player: PlayerID: {playerId}, Position: {position}, Angle: {angle}");
+            Debug.Log($"Starting Player: PlayerID: {_playerId}, Position: {position}, Angle: {angle}");
             if (_playerId != playerId)
             {
                 Debug.Log($"Player {_playerId} connected.");
                 //Quaternion rot = Quaternion.Euler(0, angle, 0);
 
-                AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle);
+                //AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle);
+                 RunOnMainThread(() =>
+                {
+                    Debug.Log($"[MainThread] Creating player {_playerId}");
+                    AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle);
+                });
             }
         });
 
@@ -116,7 +126,12 @@ public class NetClient : MonoBehaviour
             {
                 Debug.Log($"Player {_playerId} is moving.");
 
-                UpdatePlayerState(_playerId, position, angle);
+                RunOnMainThread(() =>
+                {
+                    UpdatePlayerState(_playerId, position, angle);
+                });
+
+                
             }
         });
 
@@ -127,7 +142,7 @@ public class NetClient : MonoBehaviour
     {
         Debug.Log("Attempting to connect to Socket.IO server...");
         await client.ConnectAsync();
-        await client.EmitAsync("player-start", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
+
     }
 
     // You might want to disconnect when the MonoBehaviour is destroyed
@@ -152,6 +167,11 @@ public class NetClient : MonoBehaviour
                 PlayerAngle_Cache = Player.transform.eulerAngles.y;
                 Debug.Log($" x: {PlayerPos_Cache.x}");
             }
+        }
+
+         while (mainThreadActions.TryDequeue(out var action))
+        {
+            action.Invoke();
         }
     }
 
@@ -178,23 +198,39 @@ public class NetClient : MonoBehaviour
         }
     }
 
-    public GameObject CreatePlayer(int playerId, Vector3 startPosition)
+    public GameObject CreatePlayer(int _playerId, Vector3 startPosition)
     {
-        if (!playerPositions.ContainsKey(playerId))
+        Debug.Log("CreatePlayer: Head");
+        if (PlayerOnline == null)
         {
+            Debug.LogError("PlayerOnline prefab not assigned!");
+            return null;
+        }
+        if (!playerPositions.ContainsKey(_playerId))
+        {
+            Debug.Log($"CreatePlayer: after if check {startPosition}");
             GameObject go = Instantiate(PlayerOnline, startPosition, Quaternion.identity);
-            go.name = $"Player_{playerId}";
+            go.name = $"Player_{_playerId}";
+            Debug.Log($"[CreatePlayer] Instantiated {go.name} at {go.transform.position}, active: {go.activeSelf}");
+
 
             var data = new PlayerData
             {
+                playerId = _playerId,
                 gameObject = go,
                 Position = startPosition,
                 Angle = 0f
             };
 
-            playerPositions.TryAdd(playerId, data);
+            playerPositions.TryAdd(_playerId, data);
             return go;
         }
         return null;
     }
+    
+    private void RunOnMainThread(Action action)
+    {
+        mainThreadActions.Enqueue(action);
+    }
+
 }
