@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.IO; 
 
 public class PlayerController : MonoBehaviour
 {
@@ -25,7 +26,8 @@ public class PlayerController : MonoBehaviour
         playerTransform = transform;
     }
 
-    void SetPlayerCenter() {
+    void SetPlayerCenter()
+    {
         // Calculate the center position of the world
         int worldCenterIndex = World.Instance.worldSize / 2;
         float worldCenterX = worldCenterIndex * World.Instance.chunkSize;
@@ -38,7 +40,7 @@ public class PlayerController : MonoBehaviour
 
         // Calculate maxHeight
         float maxHeight = normalizedNoiseValue * World.Instance.maxHeight;
-       
+
         // Adjust the height for the player's position (assuming the player's capsule collider has a height of 2 units)
         maxHeight += 1.5f; // This ensures that the base of the player is at the terrain height
 
@@ -46,7 +48,8 @@ public class PlayerController : MonoBehaviour
         transform.position = new Vector3(worldCenterX, maxHeight, worldCenterZ);
     }
 
-    void PlayerMove() {
+    void PlayerMove()
+    {
         groundedPlayer = characterController.isGrounded;
         if (groundedPlayer && playerVelocity.y < 0)
         {
@@ -85,19 +88,37 @@ public class PlayerController : MonoBehaviour
         return playerTransform.position; // Return the current position of the player.
     }
 
-    void Update() 
+    void Update()
     {
         // Toggle fly mode
-        if (Input.GetKeyDown(KeyCode.F)) {
+        if (Input.GetKeyDown(KeyCode.F))
+        {
             isFlying = !isFlying;
             characterController.enabled = !isFlying; // Disable the character controller when flying
         }
 
-        if (isFlying) {
+        if (isFlying)
+        {
             Fly();
-        } else {
+        }
+        else
+        {
             PlayerMove();
         }
     }
+    
+    public static byte[] SerializeTransform(Vector3 pos, float angle)
+    {
+        using (var stream = new MemoryStream(16))
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write(pos.x);
+            writer.Write(pos.y);
+            writer.Write(pos.z);
+            writer.Write(angle); // usually Y rotation
+            return stream.ToArray();
+        }
+    }
+
 
 }

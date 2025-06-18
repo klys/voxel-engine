@@ -19,7 +19,7 @@ public class World : MonoBehaviour
     public float[,] noiseArray;
 
     PlayerController playerController;
-    Vector3 playerPosition; 
+    public Vector3 playerPosition; 
 
     public int loadRadius = 5; // Define how many chunks to load around the player
     public int unloadRadius = 7; // Chunks outside this radius will be unloaded
