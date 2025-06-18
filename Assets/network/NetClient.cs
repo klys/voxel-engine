@@ -63,7 +63,6 @@ public class NetClient : MonoBehaviour
 
         client.On("player-identification", (response) =>
         {
-            Debug.Log(response);
             playerId = response.GetValue<int>();
             Debug.Log($"Player identified as {playerId}");
         });
@@ -85,7 +84,7 @@ public class NetClient : MonoBehaviour
                 angle = reader.ReadSingle();
             }
 
-            Debug.Log($"PlayerID: {playerId}, Position: {position}, Angle: {angle}");
+            Debug.Log($"Starting Player: PlayerID: {playerId}, Position: {position}, Angle: {angle}");
             if (_playerId != playerId)
             {
                 Debug.Log($"Player {_playerId} connected.");
@@ -112,7 +111,7 @@ public class NetClient : MonoBehaviour
                 angle = reader.ReadSingle();
             }
 
-            Debug.Log($"PlayerID: {playerId}, Position: {position}, Angle: {angle}");
+            Debug.Log($"PlayerID: {_playerId}, Position: {position}, Angle: {angle}");
             if (_playerId != playerId)
             {
                 Debug.Log($"Player {_playerId} is moving.");
@@ -128,7 +127,7 @@ public class NetClient : MonoBehaviour
     {
         Debug.Log("Attempting to connect to Socket.IO server...");
         await client.ConnectAsync();
-        await client.EmitAsync("player-start", PlayerController.SerializeTransform(Player.transform.position, Player.transform.eulerAngles.y));
+        await client.EmitAsync("player-start", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
     }
 
     // You might want to disconnect when the MonoBehaviour is destroyed
@@ -147,9 +146,11 @@ public class NetClient : MonoBehaviour
         {
             if ((PlayerPos_Cache != Player.transform.position) || !Mathf.Approximately(PlayerAngle_Cache, Player.transform.eulerAngles.y))
             {
-                client.EmitAsync("player-move", PlayerController.SerializeTransform(Player.transform.position, Player.transform.eulerAngles.y));
+                Debug.Log($" Player {playerId} moving and sending his data");
+                client.EmitAsync("player-move", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
                 PlayerPos_Cache = Player.transform.position;
                 PlayerAngle_Cache = Player.transform.eulerAngles.y;
+                Debug.Log($" x: {PlayerPos_Cache.x}");
             }
         }
     }

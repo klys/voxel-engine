@@ -107,11 +107,13 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    public static byte[] SerializeTransform(Vector3 pos, float angle)
+    public static byte[] SerializeTransform(int playerId, Vector3 pos, float angle)
     {
-        using (var stream = new MemoryStream(16))
+        Debug.Log($"playerId {playerId}");
+        using (var stream = new MemoryStream(20))
         using (var writer = new BinaryWriter(stream))
         {
+            writer.Write(playerId);
             writer.Write(pos.x);
             writer.Write(pos.y);
             writer.Write(pos.z);
