@@ -6,7 +6,7 @@ public class World : MonoBehaviour
     public int worldSize = 5; // Size of the world in number of chunks
     public int chunkSize = 16; // Assuming chunk size is 16x16x16
 
-    private Dictionary<Vector3, Chunk> chunks;
+    private Dictionary<Vector3, Chunk> chunks = new Dictionary<Vector3, Chunk>();
 
     public static World Instance { get; private set; }
 
@@ -43,7 +43,7 @@ public class World : MonoBehaviour
     {
         GlobalNoise.SetSeed();
         playerController = FindFirstObjectByType<PlayerController>(); // Add this
-        chunks = new Dictionary<Vector3, Chunk>();
+        //chunks = new Dictionary<Vector3, Chunk>(); 
         //GenerateWorld();
     }
 

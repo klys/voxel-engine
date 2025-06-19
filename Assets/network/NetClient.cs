@@ -99,8 +99,9 @@ public class NetClient : MonoBehaviour
                 RunOnMainThread(async () =>
                {
                    Debug.Log($"[MainThread] Creating player {_playerId}");
-                   if (AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle))
+                   if (AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle) == true)
                    {
+                       Debug.Log($"[MainThread] spreading my existance from {playerId} to {_playerId}");
                          await client.EmitAsync("player-start", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
                    }
                });
@@ -180,23 +181,27 @@ public class NetClient : MonoBehaviour
         }
     }
 
-    bool AddPlayer(int playerId, GameObject go, Vector3 pos, float angle)
+    bool AddPlayer(int _playerId, GameObject go, Vector3 pos, float angle)
     {
-  
+
         var data = new PlayerData
         {
+            playerId = _playerId,
             gameObject = go,
             Position = go.transform.position,
             Angle = go.transform.eulerAngles.y
         };
-
-        return playerPositions.TryAdd(playerId, data);
+        Debug.Log($"BEFORE Current count: {playerPositions.Count}");
+        var check = playerPositions.TryAdd(_playerId, data);
+        Debug.Log($"AFTER Current count: {playerPositions.Count}");
+        Debug.Log($"AddPlayer check {check}");
+        return check;
 
     }
 
-    void UpdatePlayerState(int playerId, Vector3 pos, float angle)
+    void UpdatePlayerState(int _playerId, Vector3 pos, float angle)
     {
-        if (playerPositions.TryGetValue(playerId, out var data))
+        if (playerPositions.TryGetValue(_playerId, out var data))
         {
             data.Position = pos;
             data.Angle = angle;
@@ -229,7 +234,7 @@ public class NetClient : MonoBehaviour
                 Angle = 0f
             };
 
-            playerPositions.TryAdd(_playerId, data);
+            //playerPositions.TryAdd(_playerId, data);
             return go;
         }
         return null;
