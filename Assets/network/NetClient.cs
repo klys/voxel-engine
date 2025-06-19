@@ -96,11 +96,16 @@ public class NetClient : MonoBehaviour
                 //Quaternion rot = Quaternion.Euler(0, angle, 0);
 
                 //AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle);
-                 RunOnMainThread(() =>
-                {
-                    Debug.Log($"[MainThread] Creating player {_playerId}");
-                    AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle);
-                });
+                RunOnMainThread(() =>
+               {
+                   Debug.Log($"[MainThread] Creating player {_playerId}");
+                   if (AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle))
+                   {
+                         await client.EmitAsync("player-start", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
+                   }
+               });
+
+                
             }
         });
 
@@ -175,8 +180,9 @@ public class NetClient : MonoBehaviour
         }
     }
 
-    void AddPlayer(int playerId, GameObject go, Vector3 pos, float angle)
+    bool AddPlayer(int playerId, GameObject go, Vector3 pos, float angle)
     {
+  
         var data = new PlayerData
         {
             gameObject = go,
@@ -184,7 +190,8 @@ public class NetClient : MonoBehaviour
             Angle = go.transform.eulerAngles.y
         };
 
-        playerPositions.TryAdd(playerId, data);
+        return playerPositions.TryAdd(playerId, data);
+
     }
 
     void UpdatePlayerState(int playerId, Vector3 pos, float angle)
