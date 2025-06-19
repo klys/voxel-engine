@@ -33,7 +33,7 @@ public class NetClient : MonoBehaviour
     void Start()
     {
         Debug.Log("Starting NetClient.");
-        client = new SocketIOClient.SocketIO("http://127.0.0.1:3000/", new SocketIOOptions
+        client = new SocketIOClient.SocketIO("http://34.57.75.78:3000/", new SocketIOOptions
         {
             // Optional: Configure options like auto-reconnection, query parameters, etc.
             Reconnection = true,
