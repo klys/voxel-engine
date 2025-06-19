@@ -96,12 +96,12 @@ public class NetClient : MonoBehaviour
                 //Quaternion rot = Quaternion.Euler(0, angle, 0);
 
                 //AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle);
-                RunOnMainThread(async () =>
+                RunOnMainThread(() =>
                {
                    Debug.Log($"[MainThread] Creating player {_playerId}");
                    if (AddPlayer(_playerId, CreatePlayer(_playerId, position), position, angle))
                    {
-                         await client.EmitAsync("player-start", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
+                         client.EmitAsync("player-start", PlayerController.SerializeTransform(playerId, Player.transform.position, Player.transform.eulerAngles.y));
                    }
                });
 
